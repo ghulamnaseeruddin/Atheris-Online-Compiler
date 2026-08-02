@@ -1,0 +1,56 @@
+# Render "Blueprint" — lets you deploy the backend by connecting this repo
+# at render.com/blueprints instead of clicking through manual setup.
+# This uses the FREE plan (no credit card required). Trade-off: no persistent
+# disk, so SQLite data resets on every redeploy/restart, and the service
+# spins down after 15 min idle (30-60s cold start on the next request).
+# If you outgrow that, switch `plan` to `starter` and add a `disk` block
+# pointing SQLITE_DB_PATH at the mounted volume — that requires billing info.
+# Secrets (JWT_SECRET, SESSION_SECRET, OAuth credentials, AI_API_KEY) are
+# intentionally NOT set here — Render will prompt you for them, or add them
+# yourself afterward in the dashboard. Never commit real secrets to this file.
+services:
+  - type: web
+    name: atheris-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    # NOTE: no `disk` block here — persistent disks require a paid plan.
+    # On the free plan, SQLITE_DB_PATH lives in the container's ephemeral
+    # filesystem, so the database resets on every redeploy/restart.
+    # Fine for a personal project/demo; switch back to a paid plan + disk
+    # (or migrate to Render's free hosted Postgres) if you need data to
+    # survive deploys.
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SQLITE_DB_PATH
+        value: ./data/atheris.db
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: JWT_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_CALLBACK_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        sync: false
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: AI_MODEL
+        value: llama-3.3-70b-versatile

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Atheris Online Compiler — Write, run, and share code in any language</title>
+    <meta
+      name="description"
+      content="Atheris Online Compiler is a fast, free online code editor supporting every major high-level and low-level programming language. Run code instantly, share links, and collaborate."
+    />
+
+    <!-- Open Graph / Social preview -->
+    <meta property="og:title" content="Atheris Online Compiler" />
+    <meta
+      property="og:description"
+      content="Write, run, and share code in any language — instantly, in your browser."
+    />
+    <meta property="og:image" content="/social-preview.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Set the theme class before React mounts so there's no flash of the
+         wrong theme on load (reads the same 'atheris_theme' key ThemeContext uses). -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("atheris_theme");
+          var dark = stored ? stored === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="bg-surface font-body text-charcoal-950 dark:bg-charcoal-950 dark:text-white/90">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

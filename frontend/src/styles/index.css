@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd8d2 transparent;
+}
+
+.dark * {
+  scrollbar-color: #2a3a34 transparent;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-2
+    text-sm font-semibold text-charcoal-950 transition-colors hover:bg-emerald-400
+    focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
+    focus-visible:outline-emerald-500 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 rounded-md border border-surface-border
+    bg-white px-4 py-2 text-sm font-semibold text-charcoal-900 transition-colors
+    hover:border-emerald-400 hover:text-emerald-700 focus-visible:outline
+    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500
+    dark:border-white/10 dark:bg-charcoal-800 dark:text-white/90 dark:hover:border-emerald-400/60
+    dark:hover:text-emerald-300;
+}
+
+.btn-ghost-dark {
+  @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium
+    text-white/80 transition-colors hover:bg-white/5 hover:text-white;
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium
+    text-charcoal-700 transition-colors hover:bg-charcoal-950/5 hover:text-charcoal-950
+    dark:text-white/80 dark:hover:bg-white/5 dark:hover:text-white;
+}
+
+.input-field {
+  @apply w-full rounded-md border border-surface-border bg-white px-3 py-2 text-sm
+    text-charcoal-950 placeholder:text-surface-muted focus:border-emerald-500 focus:outline-none
+    focus:ring-1 focus:ring-emerald-500
+    dark:border-white/10 dark:bg-charcoal-800 dark:text-white/90 dark:placeholder:text-white/40;
+}
+
+.panel {
+  @apply rounded-lg border border-surface-border bg-surface-card shadow-panel
+    dark:border-white/10 dark:bg-charcoal-900 dark:shadow-none;
+}
