@@ -29,7 +29,7 @@ export const RUNNERS = {
   },
   typescript: {
     fileName: "main.ts",
-    compile: (ctx) => [{ cmd: "npx", args: ["-y", "tsc", ctx.fileName, "--outFile", `${ctx.base}.js`] }],
+    compile: (ctx) => [{ cmd: "npx", args: ["-y", "tsc", ctx.fileName] }],
     run: (ctx) => ({ cmd: "node", args: [`${ctx.base}.js`] }),
   },
   c: {
