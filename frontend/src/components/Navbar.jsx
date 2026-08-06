@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { to: "/#languages", label: "Languages", kind: "anchor" },
   { to: "/#features", label: "Features", kind: "anchor" },
   { to: "/about", label: "About", kind: "route" },
+  { to: "/docs", label: "Docs", kind: "route" },
   { to: "/settings", label: "Settings", kind: "route" },
   { to: "/contact", label: "Contact Us", kind: "route" },
 ];

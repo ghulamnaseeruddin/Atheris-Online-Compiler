@@ -24,6 +24,7 @@ import Embed from "./pages/Embed";
 import Leaderboard from "./pages/Leaderboard";
 import Settings from "./pages/Settings";
 import About from "./pages/About";
+import Docs from "./pages/Docs";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
@@ -86,6 +87,7 @@ function AppShell() {
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/about" element={<About />} />
+            <Route path="/docs" element={<Docs />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/u/:username" element={<Profile />} />
             <Route path="*" element={<NotFound />} />
