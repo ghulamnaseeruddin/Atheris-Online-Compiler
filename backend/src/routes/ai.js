@@ -69,6 +69,7 @@ router.post("/chat", requireAuth, aiLimiter, async (req, res) => {
 
   if (toolCheck.ok) {
     const toolData = await toolCheck.json();
+    console.log("[ai] tool check response:", JSON.stringify(toolData?.choices?.[0]?.message));
     const choice = toolData?.choices?.[0]?.message;
 
     if (choice?.tool_calls?.length > 0) {
