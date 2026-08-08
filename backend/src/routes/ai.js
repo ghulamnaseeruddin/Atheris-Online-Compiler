@@ -1,6 +1,12 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.js";
 import { aiLimiter } from "../middleware/rateLimiter.js";
+import { fileTools } from "../config/fileTools.js";
+import { createExcelFile, createWordFile, createPdfFile, createZipFile } from "../utils/fileGenerators.js";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { OUTPUT_DIR } from "../utils/fileGenerators.js";
 
 const router = Router();
 
@@ -8,13 +14,10 @@ const SYSTEM_PROMPT =
   "You are the Atheris AI assistant, embedded in the Atheris Online Compiler. " +
   "Help the user write, debug, and explain code in any programming language, and answer " +
   "general questions clearly and concisely. Always put code in fenced code blocks with a " +
-  "language tag (e.g. ```python) so it can be inserted straight into the editor.";
+  "language tag (e.g. ```python) so it can be inserted straight into the editor. " +
+  "If the user asks you to create an Excel, Word, PDF, or ZIP file, use the matching tool " +
+  "to actually generate it — never pretend to make one without calling the tool.";
 
-// This endpoint is a thin proxy to any OpenAI-compatible /chat/completions API —
-// it works unmodified with OpenAI itself, or with any drop-in replacement that
-// speaks the same protocol (Groq, OpenRouter, Together AI, Fireworks, a local
-// Ollama server, etc). Swap providers by changing AI_BASE_URL / AI_MODEL / AI_API_KEY
-// in backend/.env — no code changes needed. See README "AI Assistant" section.
 router.post("/chat", requireAuth, aiLimiter, async (req, res) => {
   const { messages } = req.body;
 
@@ -37,13 +40,62 @@ router.post("/chat", requireAuth, aiLimiter, async (req, res) => {
   const model = process.env.AI_MODEL || "gpt-4o-mini";
   const maxTokens = Number(process.env.AI_MAX_TOKENS) || 1024;
 
-  // Keep only the last 20 turns and cap each message's length — bounds token
-  // usage per request regardless of what the client sends.
   const trimmed = messages.slice(-20).map((m) => ({
     role: m.role === "assistant" ? "assistant" : "user",
     content: String(m.content ?? "").slice(0, 8000),
   }));
 
+  // First, ask the AI (without streaming) whether this message wants a file.
+  let toolCheck;
+  try {
+    toolCheck = await fetch(`${baseURL}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...trimmed],
+        tools: fileTools,
+        stream: false,
+        max_tokens: maxTokens,
+      }),
+    });
+  } catch (err) {
+    console.error("[ai] could not reach provider:", err.message);
+    return res.status(502).json({ message: "Could not reach the AI provider. Check AI_BASE_URL and your network." });
+  }
+
+  if (toolCheck.ok) {
+    const toolData = await toolCheck.json();
+    const choice = toolData?.choices?.[0]?.message;
+
+    if (choice?.tool_calls?.length > 0) {
+      const call = choice.tool_calls[0];
+      const args = JSON.parse(call.function.arguments);
+      let result;
+
+      try {
+        if (call.function.name === "create_excel_file") result = await createExcelFile(args);
+        if (call.function.name === "create_word_file") result = await createWordFile(args);
+        if (call.function.name === "create_pdf_file") result = await createPdfFile(args);
+        if (call.function.name === "create_zip_file") result = await createZipFile(args);
+      } catch (err) {
+        console.error("[ai] file generation failed:", err.message);
+        return res.status(500).json({ message: "Failed to generate the file." });
+      }
+
+      return res.json({
+        type: "file",
+        downloadUrl: `/api/ai/download/${result.id}`,
+        filename: result.downloadName,
+        reply: `I've created ${result.downloadName} for you.`,
+      });
+    }
+  }
+
+  // No file requested — fall through to the normal streaming chat response.
   let upstream;
   try {
     upstream = await fetch(`${baseURL}/chat/completions`, {
@@ -75,7 +127,6 @@ router.post("/chat", requireAuth, aiLimiter, async (req, res) => {
     });
   }
 
-  // Stream the provider's SSE response straight through to the browser.
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
@@ -96,12 +147,14 @@ router.post("/chat", requireAuth, aiLimiter, async (req, res) => {
   }
 });
 
-// Fast, non-streaming, single-shot completion used for inline "ghost text"
-// autocomplete in the editor — deliberately separate from /chat, which is
-// tuned for a back-and-forth conversation. Low max_tokens keeps latency
-// tight enough to feel responsive as the user types (the frontend also
-// debounces calls — see components/CodeEditor.jsx — so this isn't hit on
-// every keystroke).
+// Serves a generated Excel/Word/PDF/ZIP file for download.
+router.get("/download/:id", requireAuth, (req, res) => {
+  const files = fs.readdirSync(OUTPUT_DIR);
+  const match = files.find((f) => f.startsWith(req.params.id));
+  if (!match) return res.status(404).json({ message: "File not found or expired." });
+  res.download(path.join(OUTPUT_DIR, match));
+});
+
 router.post("/complete", requireAuth, aiLimiter, async (req, res) => {
   const { language, prefix, suffix } = req.body;
   if (typeof prefix !== "string") {
@@ -110,9 +163,6 @@ router.post("/complete", requireAuth, aiLimiter, async (req, res) => {
 
   const apiKey = process.env.AI_API_KEY;
   if (!apiKey) {
-    // Autocomplete silently no-ops without a key configured, rather than
-    // surfacing an error toast on every keystroke — the chat panel already
-    // explains how to set AI_API_KEY if the user goes looking.
     return res.json({ completion: "" });
   }
 
@@ -143,8 +193,6 @@ router.post("/complete", requireAuth, aiLimiter, async (req, res) => {
     const completion = data?.choices?.[0]?.message?.content || "";
     res.json({ completion });
   } catch (err) {
-    // Autocomplete failing silently is the right UX here — never block or
-    // error the editor over a missed inline suggestion.
     res.json({ completion: "" });
   }
 });
