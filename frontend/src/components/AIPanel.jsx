@@ -44,7 +44,7 @@ function CodeBlock({ lang, content }) {
   );
 }
 
-function MessageBubble({ role, content }) {
+function MessageBubble({ role, content, file }) {
   const segments = parseMessageSegments(content);
   const isUser = role === "user";
 
@@ -67,6 +67,15 @@ function MessageBubble({ role, content }) {
               </p>
             )
           )
+        )}
+        {file && (
+          
+            href={file.url}
+            download={file.name}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-medium text-charcoal-950 hover:bg-emerald-400"
+          >
+            📄 Download {file.name}
+          </a>
         )}
       </div>
     </div>
@@ -121,7 +130,20 @@ export default function AIPanel() {
             return copy;
           });
         },
-        onDone: () => setStreaming(false),
+        onDone: (result) => {
+          setStreaming(false);
+          if (result?.type === "file") {
+            setMessages((prev) => {
+              const copy = [...prev];
+              copy[copy.length - 1] = {
+                ...copy[copy.length - 1],
+                content: result.reply,
+                file: { url: result.downloadUrl, name: result.filename },
+              };
+              return copy;
+            });
+          }
+        },
         onError: (msg) => {
           setStreaming(false);
           setErrorMsg(msg);
@@ -199,7 +221,7 @@ export default function AIPanel() {
             </p>
           )}
           {messages.map((m, i) => (
-            <MessageBubble key={i} role={m.role} content={m.content} />
+            <MessageBubble key={i} role={m.role} content={m.content} file={m.file} />
           ))}
           {streaming && messages[messages.length - 1]?.content === "" && (
             <p className="text-xs text-surface-muted dark:text-white/40">Thinking…</p>

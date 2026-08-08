@@ -22,6 +22,24 @@ export async function streamAIChat(messages, { onDelta, onDone, onError, signal 
     onError("Couldn't reach the server. Check your connection and try again.");
     return;
   }
+  // If the AI generated a file instead of a text stream, the backend sends
+  // back a normal one-time JSON response (not SSE) — handle that first.
+  const contentType = res.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      onError("Something went wrong talking to the AI assistant.");
+      return;
+    }
+    if (data?.type === "file") {
+      onDone({ type: "file", downloadUrl: data.downloadUrl, filename: data.filename, reply: data.reply });
+      return;
+    }
+    onError(data?.message || "Something went wrong talking to the AI assistant.");
+    return;
+  }
 
   if (!res.ok || !res.body) {
     let message = "Something went wrong talking to the AI assistant.";
