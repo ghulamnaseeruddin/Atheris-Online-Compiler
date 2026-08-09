@@ -5,6 +5,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 // onDone() when the stream ends cleanly; onError(message) on any failure.
 export async function streamAIChat(messages, { onDelta, onDone, onError, signal }) {
   const token = localStorage.getItem("atheris_token");
+  console.log("[aiClient] sending request to", `${API_BASE}/ai/chat`, "token present:", !!token);
 
   let res;
   try {
@@ -22,6 +23,7 @@ export async function streamAIChat(messages, { onDelta, onDone, onError, signal 
     onError("Couldn't reach the server. Check your connection and try again.");
     return;
   }
+  console.log("[aiClient] response received, status:", res.status, "content-type:", res.headers.get("content-type"));
   // If the AI generated a file instead of a text stream, the backend sends
   // back a normal one-time JSON response (not SSE) — handle that first.
   const contentType = res.headers.get("content-type") || "";
