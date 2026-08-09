@@ -37,16 +37,19 @@ export async function createWordFile({ filename, content }) {
 }
 
 export async function createPdfFile({ filename, content }) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const id = uuidv4();
     const filePath = path.join(OUTPUT_DIR, `${id}-${filename}.pdf`);
     const doc = new PDFDocument();
-    doc.pipe(fs.createWriteStream(filePath));
+    const stream = fs.createWriteStream(filePath);
+    doc.pipe(stream);
     doc.text(content);
     doc.end();
-    doc.on("end", () => resolve({ id, filePath, downloadName: `${filename}.pdf` }));
+    stream.on("finish", () => resolve({ id, filePath, downloadName: `${filename}.pdf` }));
+    stream.on("error", reject);
   });
 }
+
 
 export async function createZipFile({ filename, files }) {
   return new Promise((resolve) => {
