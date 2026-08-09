@@ -44,6 +44,21 @@ function CodeBlock({ lang, content }) {
   );
 }
 
+
+
+function FileDownloadLink({ file }) {
+  if (!file) return null;
+  return React.createElement(
+    "a",
+    {
+      href: file.url,
+      download: file.name,
+      className: "mt-2 inline-flex items-center gap-1.5 rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-medium text-charcoal-950 hover:bg-emerald-400"
+    },
+    "Download " + file.name
+  );
+}
+
 function MessageBubble({ role, content, file }) {
   const segments = parseMessageSegments(content);
   const isUser = role === "user";
@@ -68,15 +83,7 @@ function MessageBubble({ role, content, file }) {
             )
           )
         )}
-        {file && (
-          
-            href={file.url}
-            download={file.name}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-medium text-charcoal-950 hover:bg-emerald-400"
-          >
-            📄 Download {file.name}
-          </a>
-        )}
+        <FileDownloadLink file={file} />
       </div>
     </div>
   );
@@ -131,7 +138,7 @@ export default function AIPanel() {
         },
         onDone: (result) => {
           setStreaming(false);
-          if (result?.type === "file") {
+          if (result && result.type === "file") {
             setMessages((prev) => {
               const copy = [...prev];
               copy[copy.length - 1] = {
