@@ -76,6 +76,7 @@ router.post("/chat", requireAuth, aiLimiter, async (req, res) => {
       const call = choice.tool_calls[0];
       const args = JSON.parse(call.function.arguments);
       let result;
+      console.log("[ai] file generated successfully:", result);console.log("[ai] file generated successfully:", result);
 
       try {
         if (call.function.name === "create_excel_file") result = await createExcelFile(args);
