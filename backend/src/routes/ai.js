@@ -76,7 +76,7 @@ router.post("/chat", requireAuth, aiLimiter, async (req, res) => {
       const call = choice.tool_calls[0];
       const args = JSON.parse(call.function.arguments);
       let result;
-      console.log("[ai] file generated successfully:", result);console.log("[ai] file generated successfully:", result);
+      
 
       try {
         if (call.function.name === "create_excel_file") result = await createExcelFile(args);
@@ -87,6 +87,7 @@ router.post("/chat", requireAuth, aiLimiter, async (req, res) => {
         console.error("[ai] file generation failed:", err.message);
         return res.status(500).json({ message: "Failed to generate the file." });
       }
+        console.log("[ai] file generated successfully:", result);
 
       return res.json({
         type: "file",
