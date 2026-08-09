@@ -96,7 +96,6 @@ export default function AIPanel() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, streaming]);
 
-  // Close on Escape for keyboard users.
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => e.key === "Escape" && setOpen(false);
@@ -147,16 +146,13 @@ export default function AIPanel() {
         onError: (msg) => {
           setStreaming(false);
           setErrorMsg(msg);
-          setMessages((prev) => prev.slice(0, -1)); // drop the empty assistant bubble
+          setMessages((prev) => prev.slice(0, -1));
         },
       });
     },
     [input, streaming, messages]
   );
 
-  // A queued prompt (e.g. from the "Explain this error" button in
-  // OutputPanel) gets sent automatically as soon as the panel is open and
-  // idle, so the user doesn't have to paste anything themselves.
   useEffect(() => {
     if (open && queuedPrompt && !streaming) {
       const prompt = queuedPrompt;
