@@ -18,7 +18,7 @@ const SYSTEM_PROMPT =
   "If the user asks you to create an Excel, Word, PDF, or ZIP file, use the matching tool " +
   "to actually generate it — never pretend to make one without calling the tool.";
 
-router.post("/chat", requireAuth, aiLimiter, async (req, res) => {
+router.get("/download/:id", (req, res) => {
   const { messages } = req.body;
 
   if (!Array.isArray(messages) || messages.length === 0) {
