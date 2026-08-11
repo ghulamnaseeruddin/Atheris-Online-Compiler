@@ -35,10 +35,11 @@ export async function streamAIChat(messages, { onDelta, onDone, onError, signal 
       onError("Something went wrong talking to the AI assistant.");
       return;
     }
-    if (data?.type === "file") {
+   if (data?.type === "file") {
+      const backendOrigin = API_BASE.replace(/\/api\/?$/, "");
       const fullDownloadUrl = data.downloadUrl.startsWith("http")
         ? data.downloadUrl
-        : `${API_BASE}${data.downloadUrl}`;
+        : `${backendOrigin}${data.downloadUrl}`;
       onDone({ type: "file", downloadUrl: fullDownloadUrl, filename: data.filename, reply: data.reply });
       return;
     }
