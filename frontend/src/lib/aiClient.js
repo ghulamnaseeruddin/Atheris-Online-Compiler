@@ -36,7 +36,10 @@ export async function streamAIChat(messages, { onDelta, onDone, onError, signal 
       return;
     }
     if (data?.type === "file") {
-      onDone({ type: "file", downloadUrl: data.downloadUrl, filename: data.filename, reply: data.reply });
+      const fullDownloadUrl = data.downloadUrl.startsWith("http")
+        ? data.downloadUrl
+        : `${API_BASE}${data.downloadUrl}`;
+      onDone({ type: "file", downloadUrl: fullDownloadUrl, filename: data.filename, reply: data.reply });
       return;
     }
     onError(data?.message || "Something went wrong talking to the AI assistant.");
