@@ -5,7 +5,6 @@ import { fileTools } from "../config/fileTools.js";
 import { createExcelFile, createWordFile, createPdfFile, createZipFile } from "../utils/fileGenerators.js";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 import { OUTPUT_DIR } from "../utils/fileGenerators.js";
 
 const router = Router();
@@ -18,7 +17,7 @@ const SYSTEM_PROMPT =
   "If the user asks you to create an Excel, Word, PDF, or ZIP file, use the matching tool " +
   "to actually generate it — never pretend to make one without calling the tool.";
 
-router.get("/download/:id", (req, res) => {
+router.post("/chat", requireAuth, aiLimiter, async (req, res) => {
   const { messages } = req.body;
 
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -45,7 +44,6 @@ router.get("/download/:id", (req, res) => {
     content: String(m.content ?? "").slice(0, 8000),
   }));
 
-  // First, ask the AI (without streaming) whether this message wants a file.
   let toolCheck;
   try {
     toolCheck = await fetch(`${baseURL}/chat/completions`, {
@@ -76,7 +74,6 @@ router.get("/download/:id", (req, res) => {
       const call = choice.tool_calls[0];
       const args = JSON.parse(call.function.arguments);
       let result;
-      
 
       try {
         if (call.function.name === "create_excel_file") result = await createExcelFile(args);
@@ -87,7 +84,8 @@ router.get("/download/:id", (req, res) => {
         console.error("[ai] file generation failed:", err.message);
         return res.status(500).json({ message: "Failed to generate the file." });
       }
-        console.log("[ai] file generated successfully:", result);
+
+      console.log("[ai] file generated successfully:", result);
 
       return res.json({
         type: "file",
@@ -98,7 +96,6 @@ router.get("/download/:id", (req, res) => {
     }
   }
 
-  // No file requested — fall through to the normal streaming chat response.
   let upstream;
   try {
     upstream = await fetch(`${baseURL}/chat/completions`, {
@@ -150,8 +147,9 @@ router.get("/download/:id", (req, res) => {
   }
 });
 
-// Serves a generated Excel/Word/PDF/ZIP file for download.
-router.get("/download/:id", requireAuth, (req, res) => {
+// Serves a generated Excel/Word/PDF/ZIP file for download. No auth required —
+// the random UUID in the URL is itself the access control.
+router.get("/download/:id", (req, res) => {
   const files = fs.readdirSync(OUTPUT_DIR);
   const match = files.find((f) => f.startsWith(req.params.id));
   if (!match) return res.status(404).json({ message: "File not found or expired." });
