@@ -9,7 +9,7 @@ import AppMenu from "./AppMenu";
 
 const IS_DESKTOP_APP = typeof navigator !== "undefined" && navigator.userAgent.includes("Electron");
 
-const NAV_LINKS = [
+const ALL_NAV_LINKS = [
   { to: "/editor", label: "Editor", kind: "route" },
   { to: "/#languages", label: "Languages", kind: "anchor" },
   { to: "/#features", label: "Features", kind: "anchor" },
@@ -18,6 +18,10 @@ const NAV_LINKS = [
   { to: "/settings", label: "Settings", kind: "route" },
   { to: "/contact", label: "Contact Us", kind: "route" },
 ];
+
+const NAV_LINKS = IS_DESKTOP_APP
+  ? ALL_NAV_LINKS.filter((item) => item.label !== "Features" && item.label !== "Docs")
+  : ALL_NAV_LINKS;
 
 export default function Navbar() {
   const { user, logout } = useAuth();
