@@ -107,6 +107,7 @@ router.post("/chat", requireAuth, aiLimiter, async (req, res) => {
         tools: fileTools,
         stream: false,
         max_tokens: maxTokens,
+        temperature: 0.7
       }),
     });
   } catch (err) {
