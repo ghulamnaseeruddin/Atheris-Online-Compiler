@@ -9,9 +9,6 @@ import AppMenu from "./AppMenu";
 
 const IS_DESKTOP_APP = typeof navigator !== "undefined" && navigator.userAgent.includes("Electron");
 
-const DOWNLOAD_URL =
-  "https://github.com/ghulamnaseeruddin/Atheris-Online-Compiler/releases/download/v1.0.0/Atheris.Online.Compiler.Setup.1.0.0.exe";
-
 const NAV_LINKS = [
   { to: "/editor", label: "Editor", kind: "route" },
   { to: "/#languages", label: "Languages", kind: "anchor" },
@@ -52,9 +49,9 @@ export default function Navbar() {
             )
           )}
           {!IS_DESKTOP_APP && (
-            <a href={DOWNLOAD_URL} className="btn-ghost">
-              Download
-            </a>
+            <Link to="/download" className="btn-ghost">
+              Download App
+            </Link>
           )}
         </div>
 
@@ -120,13 +117,13 @@ export default function Navbar() {
               )
             )}
             {!IS_DESKTOP_APP && (
-              <a
-                href={DOWNLOAD_URL}
+              <Link
+                to="/download"
                 onClick={() => setMenuOpen(false)}
                 className="btn-ghost justify-start"
               >
-                Download
-              </a>
+                Download App
+              </Link>
             )}
 
             {user ? (
