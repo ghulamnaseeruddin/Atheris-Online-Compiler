@@ -30,6 +30,10 @@ const FEATURE_SECTIONS = [
       "Built-in AI assistant panel",
       "Explain errors and suggest fixes",
       "Insert AI-generated code directly into the editor",
+      "Generate downloadable Excel spreadsheets on request",
+      "Generate downloadable Word documents on request",
+      "Generate downloadable PDF documents on request",
+      "Generate downloadable ZIP archives on request"
     ],
   },
   {
