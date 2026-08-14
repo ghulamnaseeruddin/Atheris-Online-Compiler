@@ -56,12 +56,10 @@ export default function Download() {
           <p className="mt-1 text-sm text-charcoal-600 dark:text-white/60">
             AppImage — works on most distributions
           </p>
-          <a
-            href="#"
-            className="mt-6 inline-flex items-center justify-center rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600"
-          >
-            Download for Linux
-          </a>
+          
+           <span className="mt-6 inline-flex items-center justify-center rounded-lg bg-charcoal-200 px-5 py-2.5 text-sm font-semibold text-charcoal-500 dark:bg-white/10 dark:text-white/40">
+            Coming Soon
+          </span>
         </div>
       </div>
     </div>
