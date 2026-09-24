@@ -5,25 +5,11 @@ import https from "node:https";
 import express from "express";
 import cors from "cors";
 import passport from "passport";
+
 import { connectDB } from "./config/db.js";
 import { configurePassport } from "./config/passport.js";
 
-// Node 18+ tries IPv6 first by default. On networks/VPNs where IPv6 routing
-// is broken but the OS still reports it as available, this causes outbound
-// HTTPS requests to intermittently hang and reset ("socket hang up") — a
-// very common cause of GitHub/Google OAuth failures on Windows. Preferring
-// IPv4 first avoids that without disabling IPv6 entirely.
-dns.setDefaultResultOrder("ipv4first");
-
-// Belt-and-suspenders for the same class of bug: disable HTTP keep-alive on
-// the default agents so outbound OAuth requests (token exchange, then the
-// GitHub /user/emails follow-up call) never reuse a pooled socket that the
-// remote server has already half-closed — the other common cause of
-// "socket hang up" / ECONNRESET on Windows (often triggered by antivirus
-// HTTPS-scanning features or certain VPNs/routers).
-http.globalAgent.keepAlive = false;
-https.globalAgent.keepAlive = false;
-
+// Routes
 import authRoutes from "./routes/auth.js";
 import executeRoutes from "./routes/execute.js";
 import snippetRoutes from "./routes/snippets.js";
@@ -34,9 +20,12 @@ import apiKeysRoutes from "./routes/apiKeys.js";
 import webhooksRoutes from "./routes/webhooks.js";
 import statsRoutes from "./routes/stats.js";
 
-// Fail fast with a clear message rather than crashing later, mid-request,
-// with a cryptic jsonwebtoken error (this is what "expiresIn should be a
-// number of seconds..." usually actually means — JWT_SECRET was never set).
+// Node 18+ DNS / Network workarounds
+dns.setDefaultResultOrder("ipv4first");
+http.globalAgent.keepAlive = false;
+https.globalAgent.keepAlive = false;
+
+// Fail fast if JWT_SECRET is missing
 if (!process.env.JWT_SECRET || !process.env.JWT_SECRET.trim()) {
   console.error(
     "[startup] JWT_SECRET is missing from backend/.env — copy .env.example to .env and set it (e.g. `openssl rand -hex 32`)."
@@ -47,22 +36,29 @@ if (!process.env.JWT_SECRET || !process.env.JWT_SECRET.trim()) {
 const app = express();
 app.set("trust proxy", 1);
 
+// CONFIGURING CORS: 
+// This allows BOTH your local development URL and your live deployed Vercel frontend URL
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: [
+      "http://localhost:5173", 
+      "https://atheris-online-compiler-frontend.vercel.app" // <-- REPLACE THIS with your actual live frontend URL!
+    ],
     credentials: true,
   })
 );
-// 3mb (not 1mb) because Settings → Profile lets users upload an avatar as a
-// base64 data URL — base64 inflates raw bytes by ~33%, and the upload route
-// itself caps the decoded image at ~1.5MB (see routes/users.js).
+
+// Body parser configuration
 app.use(express.json({ limit: "3mb" }));
 
+// Passport initialization
 configurePassport();
 app.use(passport.initialize());
 
+// Health Check Route
 app.get("/api/health", (_req, res) => res.json({ status: "ok", uptime: process.uptime() }));
 
+// API Routing Setup
 app.use("/api/auth", authRoutes);
 app.use("/api/execute", executeRoutes);
 app.use("/api/snippets", snippetRoutes);
@@ -73,7 +69,7 @@ app.use("/api/api-keys", apiKeysRoutes);
 app.use("/api/webhooks", webhooksRoutes);
 app.use("/api/stats", statsRoutes);
 
-// Centralized error handler — keeps stack traces out of API responses.
+// Centralized error handler
 app.use((err, _req, res, _next) => {
   console.error(err);
   res.status(err.status || 500).json({ message: err.publicMessage || "Something went wrong." });
@@ -81,6 +77,7 @@ app.use((err, _req, res, _next) => {
 
 const PORT = process.env.PORT || 4000;
 
+// Database Connection & Server Start
 connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`[server] Atheris backend listening on port ${PORT}`);
