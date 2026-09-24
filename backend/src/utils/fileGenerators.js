@@ -5,12 +5,16 @@ import * as archiverModule from "archiver";
 const archiver = archiverModule.default || archiverModule;
 import fs from "fs";
 import path from "path";
+import os from "os"; // 1. Imported os module
 import { fileURLToPath } from "url";
 import { v4 as uuidv4 } from "uuid";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const OUTPUT_DIR = path.join(__dirname, "..", "..", "data", "generated");
-if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+// 2. Updated OUTPUT_DIR to point to Vercel's allowed writeable temporary directory (/tmp)
+const OUTPUT_DIR = path.join(os.tmpdir(), "data", "generated");
+
+if (!fs.existsSync(OUTPUT_DIR)) {
+  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+}
 
 export async function createExcelFile({ filename, data }) {
   const workbook = new ExcelJS.Workbook();
@@ -49,7 +53,6 @@ export async function createPdfFile({ filename, content }) {
     stream.on("error", reject);
   });
 }
-
 
 export async function createZipFile({ filename, files }) {
   return new Promise((resolve) => {
