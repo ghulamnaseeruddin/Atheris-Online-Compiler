@@ -1,13 +1,14 @@
 import path from "path";
 import fs from "fs";
-import os from "os"; // Imported os module for serverless temporary paths
+import os from "os"; // Safely imports the OS module for serverless temporary path handling
 import { fileURLToPath } from "url";
 import Database from "better-sqlite3";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// FIX: If no path is provided in environment variables, use Vercel's writeable /tmp directory
-const DB_PATH = process.env.SQLITE_DB_PATH || path.join(os.tmpdir(), "atheris.db");
+// FORCED SERVERLESS FIX: Completely ignores the breaking local directory path 
+// and locks the SQLite file straight into Vercel's write-allowed /tmp partition.
+const DB_PATH = path.join(os.tmpdir(), "atheris.db"); 
 
 let db;
 
@@ -19,7 +20,7 @@ export function getDB() {
 }
 
 export async function connectDB() {
-  // Safe directory check inside the temporary folder profile zone
+  // Checks and creates the directory mapping securely inside /tmp
   const dbDir = path.dirname(DB_PATH);
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
@@ -110,7 +111,7 @@ export async function connectDB() {
     CREATE INDEX IF NOT EXISTS idx_webhooks_user ON webhooks (user_id);
   `);
 
-  // Lightweight migration scripts
+  // Table migrations
   for (const stmt of [
     "ALTER TABLE snippets ADD COLUMN title TEXT",
     "ALTER TABLE snippets ADD COLUMN is_public INTEGER NOT NULL DEFAULT 1",
