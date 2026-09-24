@@ -1,15 +1,13 @@
 import path from "path";
 import fs from "fs";
+import os from "os"; // Imported os module for serverless temporary paths
 import { fileURLToPath } from "url";
 import Database from "better-sqlite3";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// SQLite lives on disk as a single file — no external service to run or
-// connection string to manage. Path is configurable via SQLITE_DB_PATH for
-// deployments where you want the file outside the repo (e.g. a mounted
-// volume on Render/Fly/Railway).
-const DB_PATH = process.env.SQLITE_DB_PATH || path.join(__dirname, "..", "..", "data", "atheris.db");
+// FIX: If no path is provided in environment variables, use Vercel's writeable /tmp directory
+const DB_PATH = process.env.SQLITE_DB_PATH || path.join(os.tmpdir(), "atheris.db");
 
 let db;
 
@@ -21,7 +19,11 @@ export function getDB() {
 }
 
 export async function connectDB() {
-  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+  // Safe directory check inside the temporary folder profile zone
+  const dbDir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
 
   db = new Database(DB_PATH);
   db.pragma("journal_mode = WAL");
@@ -108,9 +110,7 @@ export async function connectDB() {
     CREATE INDEX IF NOT EXISTS idx_webhooks_user ON webhooks (user_id);
   `);
 
-  // Lightweight migration for DBs created before `title`/`is_public` existed
-  // on snippets — ALTER TABLE ... ADD COLUMN is a no-op error if the column
-  // is already there, so this just swallows that specific case.
+  // Lightweight migration scripts
   for (const stmt of [
     "ALTER TABLE snippets ADD COLUMN title TEXT",
     "ALTER TABLE snippets ADD COLUMN is_public INTEGER NOT NULL DEFAULT 1",
@@ -118,7 +118,6 @@ export async function connectDB() {
     "ALTER TABLE snippets ADD COLUMN fork_of TEXT REFERENCES snippets(id) ON DELETE SET NULL",
     "ALTER TABLE users ADD COLUMN totp_secret TEXT",
     "ALTER TABLE users ADD COLUMN totp_enabled INTEGER NOT NULL DEFAULT 0",
-    // --- Settings page (Profile / Account / Appearance / Editor / Notifications) ---
     "ALTER TABLE users ADD COLUMN full_name TEXT",
     "ALTER TABLE users ADD COLUMN bio TEXT",
     "ALTER TABLE users ADD COLUMN developer_profile TEXT",
