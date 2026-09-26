@@ -5,8 +5,8 @@ import https from "node:https";
 import express from "express";
 import cors from "cors";
 import passport from "passport";
-import path from "node:path"; // Imported native path module
-import { fileURLToPath } from "node:url"; // Imported ESM url resolution helper
+import path from "node:path"; 
+import { fileURLToPath } from "node:url"; 
 
 import { connectDB } from "./config/db.js";
 import { configurePassport } from "./config/passport.js";
@@ -75,10 +75,9 @@ app.use("/api/webhooks", webhooksRoutes);
 app.use("/api/stats", statsRoutes);
 
 // MONOREPO INTEGRATION: Serve Vite's static production output files 
-// This reads from /frontend/dist when running inside the /backend/src directory
 app.use(express.static(path.join(__dirname, "..", "..", "frontend", "dist")));
 
-// Centralized error handler — matches your exact custom handler middleware layout
+// Centralized error handler
 app.use((err, _req, res, _next) => {
   console.error(err);
   res.status(err.status || 500).json({ message: err.publicMessage || "Something went wrong." });
@@ -91,9 +90,19 @@ app.get("*", (_req, res) => {
 
 const PORT = process.env.PORT || 4000;
 
-// Database Connection & Server Start
+// SERVERLESS WORKSPACE FIX:
+// Wrap database connections cleanly, and only run app.listen() if we are working on your local machine.
 connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`[server] Atheris backend listening on port ${PORT}`);
-  });
+  if (process.env.NODE_ENV !== "production") {
+    app.listen(PORT, () => {
+      console.log(`[server] Local Atheris backend listening on port ${PORT}`);
+    });
+  } else {
+    console.log("[server] Atheris backend mounted in serverless environment");
+  }
+}).catch((err) => {
+  console.error("[db] Critical failed database initialization:", err);
 });
+
+// Export app instance so Vercel can bridge serverless lambda executions
+export default app;
