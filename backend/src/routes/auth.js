@@ -11,9 +11,9 @@ import { authLimiter } from "../middleware/rateLimiter.js";
 
 const router = Router();
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
-const PHONE_RE = /^\+?[0-9\s-]{7,15}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+\$/;
+const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}\$/;
+const PHONE_RE = /^\+?[0-9\s-]{7,15}\$/;
 
 // --- Email + username + password signup (phone number optional) ---
 router.post("/signup", authLimiter, async (req, res) => {
@@ -71,9 +71,6 @@ router.post("/login", authLimiter, async (req, res) => {
   if (user.totpEnabled) {
     const { totpCode } = req.body;
     if (!totpCode) {
-      // Password was correct, but a second factor is required — the
-      // frontend prompts for a code and resubmits the same request with
-      // totpCode set, rather than us issuing a separate pending-auth token.
       return res.status(401).json({ requiresTotp: true, message: "Enter your 6-digit authenticator code." });
     }
     const ok = authenticator.check(String(totpCode).trim(), user.totpSecret);
@@ -87,10 +84,6 @@ router.post("/login", authLimiter, async (req, res) => {
 });
 
 // --- Two-factor authentication (TOTP) ---
-
-// Generates a new secret and a scannable QR code, but does NOT enable 2FA
-// yet — that only happens once the user proves they scanned it correctly
-// via /2fa/enable, so a user can't get locked out by a botched setup.
 router.post("/2fa/setup", requireAuth, async (req, res) => {
   const secret = authenticator.generateSecret();
   User.setTotpSecret(req.user.id, secret);
@@ -115,9 +108,6 @@ router.post("/2fa/enable", requireAuth, async (req, res) => {
 router.post("/2fa/disable", requireAuth, async (req, res) => {
   const { password } = req.body;
   if (req.user.passwordHash) {
-    // Only require re-entering the password for local accounts that have
-    // one — OAuth-only accounts (no passwordHash) skip this check since
-    // there's no password to verify.
     const valid = password && (await bcrypt.compare(password, req.user.passwordHash));
     if (!valid) return res.status(401).json({ message: "Incorrect password." });
   }
@@ -131,22 +121,17 @@ router.get("/me", requireAuth, (req, res) => {
   res.json({ user: User.toPublicJSON(req.user) });
 });
 
-// --- Forgot password (issues a time-limited reset token; wiring up the
-//     actual email send is left to your transactional email provider —
-//     see README "Future roadmap") ---
+// --- Forgot password ---
 router.post("/forgot-password", authLimiter, async (req, res) => {
   const { identifier } = req.body;
   const user = User.findByEmailOrUsername({ email: (identifier || "").toLowerCase(), username: identifier });
 
-  // Always respond 200 to avoid leaking account existence.
   if (!user) return res.json({ message: "If that account exists, a reset link has been sent." });
 
   const resetToken = crypto.randomBytes(32).toString("hex");
   const hashed = crypto.createHash("sha256").update(resetToken).digest("hex");
   User.setResetToken(user.id, hashed, Date.now() + 60 * 60 * 1000); // 1 hour
 
-  // TODO: send `resetToken` via email using your provider (Postmark, SES, etc.)
-  // Reset link shape: `${CLIENT_URL}/reset-password?token=${resetToken}&id=${user.id}`
   res.json({ message: "If that account exists, a reset link has been sent." });
 });
 
@@ -173,10 +158,14 @@ router.post("/reset-password", authLimiter, async (req, res) => {
 router.get("/github", passport.authenticate("github", { session: false, scope: ["user:email"] }));
 router.get(
   "/github/callback",
-  passport.authenticate("github", { session: false, failureRedirect: `${process.env.CLIENT_URL}/login?error=oauth` }),
+  (req, res, next) => {
+    const frontendUrl = process.env.CLIENT_URL || "https://atheris-online-compiler-seven.vercel.app";
+    passport.authenticate("github", { session: false, failureRedirect: `${frontendUrl}/login?error=oauth` })(req, res, next);
+  },
   (req, res) => {
     const token = signToken(req.user);
-    res.redirect(`${process.env.CLIENT_URL}/oauth/callback?token=${token}`);
+    const frontendUrl = process.env.CLIENT_URL || "https://atheris-online-compiler-seven.vercel.app";
+    res.redirect(`${frontendUrl}/oauth/callback?token=${token}`);
   }
 );
 
@@ -184,10 +173,14 @@ router.get(
 router.get("/google", passport.authenticate("google", { session: false, scope: ["profile", "email"] }));
 router.get(
   "/google/callback",
-  passport.authenticate("google", { session: false, failureRedirect: `${process.env.CLIENT_URL}/login?error=oauth` }),
+  (req, res, next) => {
+    const frontendUrl = process.env.CLIENT_URL || "https://atheris-online-compiler-seven.vercel.app";
+    passport.authenticate("google", { session: false, failureRedirect: `${frontendUrl}/login?error=oauth` })(req, res, next);
+  },
   (req, res) => {
     const token = signToken(req.user);
-    res.redirect(`${process.env.CLIENT_URL}/oauth/callback?token=${token}`);
+    const frontendUrl = process.env.CLIENT_URL || "https://atheris-online-compiler-seven.vercel.app";
+    res.redirect(`${frontendUrl}/oauth/callback?token=${token}`);
   }
 );
 
